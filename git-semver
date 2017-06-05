@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+function usage(){
+    echo "USAGE: git semver [-p | -m | -M]"
+    echo "           -p:    patch (X.Y.Z -> X.Y.Z+1)"
+    echo "           -m:    minor (X.Y.Z -> X.Y+1.0)"
+    echo "           -M:    major (X.Y.Z -> X+1.0.0)"
+    return 0
+}
+
+if [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+if [ $# -gt 1 ]; then
+    usage
+    exit 1
+fi
+
+patch=""
+minor=""
+major=""
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -p )    shift
+                patch="1"
+                ;;
+        -m )    shift
+                minor="1"
+                ;;
+        -M )    shift
+                major="1"
+                ;;
+        * )     >&2 echo "$0: Illegal option $1"
+                usage
+                exit 1
+    esac
+    shift
+done
+
+
+LAST_TAG=$(git describe --abbrev=0 HEAD 2> /dev/null)
+
+if [ "$LAST_TAG" == "" ]; then
+    git tag -a 0.0.0 -m "first annotated tag"
+    LAST_TAG="0.0.0"
+    exit 0
+fi
+
+PATCH=$(echo "$LAST_TAG" | sed -e 's/^[0-9]*\.[0-9]*\.\([0-9]*\)$/\1/')
+MINOR=$(echo "$LAST_TAG" | sed -e 's/^[0-9]*\.\([0-9]*\)\.[0-9]*$/\1/')
+MAJOR=$(echo "$LAST_TAG" | sed -e 's/^\([0-9]*\)\.[0-9]*\.[0-9]*$/\1/')
+
+if [ "$patch" != "" ]; then
+    PATCH=$((PATCH + 1))  
+fi
+
+if [ "$minor" != "" ]; then
+    MINOR=$((MINOR + 1))
+    PATCH="0"
+fi
+
+if [ "$major" != "" ]; then
+    MAJOR=$((MAJOR + 1))
+    PATCH="0"
+    MINOR="0"
+fi
+
+NEW_TAG="$MAJOR.$MINOR.$PATCH"
+echo "NEW TAG: $NEW_TAG"
+
+EXIST_TAG=$(git tag -l | grep $NEW_TAG)
+
+if [ "$EXIST_TAG" != "" ]; then
+    echo "The new tag $NEW_TAG already exists, fix it manually"
+    exit 1
+fi
+
+
+git tag -a $MAJOR.$MINOR.$PATCH -m "tag $MAJOR.$MINOR.$PATCH"
+exit 0
+
+# vim: set ft=sh
