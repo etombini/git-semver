@@ -43,6 +43,11 @@ install:
 	mkdir -p $(DOC_DIR)
 	cp -r $(DOC_FILES) $(DOC_DIR)/
 
+local-install:
+	mkdir -p $(HOME)/bin
+	chmod +x bin/*
+	cp bin/* $(HOME)/bin/
+
 uninstall:
 	for file in $(INSTALL_FILES); do rm -f $(PREFIX)/$$file; done
 	rm -rf $(DOC_DIR)
